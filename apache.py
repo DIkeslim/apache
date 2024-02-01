@@ -1,7 +1,10 @@
+import zipfile
 from datetime import datetime, timedelta
+import pandas as pd
+
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-
+from airflow.operators.python import PythonOperator
 
 # Task 1.1: Define DAG arguments
 default_args = {
@@ -22,27 +25,48 @@ dag = DAG(
     schedule_interval='@daily',  # You can adjust this based on your requirements
 )
 
+
 # Task 1.3: Create a task to download data
-download_task = BashOperator(
-    task_id='download_data_task',
-    bash_command='your_download_script.sh',  # Replace with your actual download script or command
-    dag=dag,
-)
+def unzip_data(**kwargs):
+    zip_file_path = '/Users/chimdikeironkwe/Desktop/pythonProject/apache/tolldata.tgz'
+    output_folder = 'output_folder'
+
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        # Extract all the contents into the output folder
+        zip_ref.extractall(output_folder)
+
+    return output_folder
+
 
 # Task 1.4: Create a task to extract data from CSV file
-extract_csv_task = BashOperator(
-    task_id='extract_csv_task',
-    bash_command='your_extract_csv_script.sh',  # Replace with your actual extract CSV script or command
-    dag=dag,
-)
+def extract_data_from_csv(**kwargs):
+    input_csv_path = 'vehicle-data.csv'
+    output_csv_path = 'csv_data.csv'
+
+    # Read the CSV file and extract the required columns
+    df = pd.read_csv(input_csv_path, usecols=['Rowid', 'Timestamp', 'Anonymized Vehicle number', 'Vehicle type'])
+
+    # Save the extracted data to a new CSV file
+    df.to_csv(output_csv_path, index=False)
+
+    return output_csv_path
+
 
 # Task 1.5: Create a task to extract data from TSV file
-extract_tsv_task = BashOperator(
-    task_id='extract_tsv_task',
-    bash_command='your_extract_tsv_script.sh',  # Replace with your actual extract TSV script or command
+def extract_data_from_tsv(**kwargs):
+    input_tsv_path = 'tollplaza-data.tsv'
+    output_csv_path = 'tsv_data.csv'
+
+    df = pd.read_csv(input_tsv_path, delimiter='\t', usecols=['Number of axles', 'Tollplaza id', 'Tollplaza code'])
+
+    df.to_csv(output_csv_path, index=False)
+
+    return output_csv_path
+
+
+extract_data_from_tsv_task = PythonOperator(
+    task_id='extract_data_from_tsv',
+    python_callable=extract_data_from_tsv,
+    provide_context=True,
     dag=dag,
 )
-
-# Define the order of tasks
-download_task >> extract_csv_task
-download_task >> extract_tsv_task
