@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from airflow import DAG
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 # Task 1.1: Define DAG arguments
@@ -22,7 +21,7 @@ dag = DAG(
     'toll_plaza_data_pipeline',
     default_args=default_args,
     description='A DAG to collect and process toll plaza data',
-    schedule='@daily',  # You can adjust this based on your requirements
+    schedule='@daily',
 )
 
 
@@ -130,7 +129,6 @@ def consolidate_data(**kwargs):
         'Type of Payment code', 'Vehicle Code'
     ]
 
-    # Reorder columns based on the specified field order
     consolidated_data = consolidated_data[field_order]
 
     # Save consolidated data to a new CSV file
@@ -160,7 +158,6 @@ def transform_and_load_data(**kwargs):
     transformed_data_path = 'transformed_data.csv'
     consolidated_data.to_csv(transformed_data_path, index=False)
 
-    # You can perform further processing or return information for downstream tasks
     return transformed_data_path
 
 
